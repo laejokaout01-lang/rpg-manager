@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Редактирование шаблона — RPG Manager{% endblock %}
+{% block breadcrumb %}{% if mode == 'game' %}<a href="{{ url_for('games_list') }}">Игры</a> <span>/</span> <a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a> <span>/</span> Структура карточки{% else %}<a href="{{ url_for('templates_list') }}">Шаблоны карточек</a> <span>/</span> Редактирование{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head-row">
+  <div>{% if mode == 'game' %}<a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}">← К игре «{{ game.name }}»</a>{% else %}<a class="back-link" href="{{ url_for('templates_list') }}">← К библиотеке шаблонов</a>{% endif %}<div class="eyebrow">РЕДАКТОР ШАБЛОНА</div><h1>Настройка шаблона</h1><p class="lead">Поля и разделы можно добавлять, переименовывать, менять местами и удалять. Изменения сохраняются только после нажатия кнопки внизу.</p></div>
+  <div class="head-actions"><a class="button button-secondary" href="{% if mode == 'game' %}{{ url_for('game_template_export', game_id=game.id, game_template_id=template.id) }}{% else %}{{ url_for('template_export', template_id=template.id) }}{% endif %}">Скачать JSON ↓</a></div>
+</div>
+{% if error %}<div class="inline-error">{{ error }}</div>{% endif %}
+{% if mode == 'game' %}<div class="info-strip compact"><span class="info-icon">i</span><div><strong>Структура конкретной игры</strong><p>Изменения влияют на карточки, созданные по этому шаблону внутри игры «{{ game.name }}», но не меняют шаблон в общей библиотеке и другие игры. Существующие значения полей сохраняются по ключам; новые пункты у старых карточек пока будут пустыми.</p></div></div>{% elif template.is_builtin %}<div class="info-strip compact"><span class="info-icon">i</span><div><strong>Базовый шаблон</strong><p>Его можно редактировать, но нельзя удалить. Перед крупными изменениями рекомендуется создать копию.</p></div><form method="post" action="{{ url_for('template_duplicate', template_id=template.id) }}"><button class="button button-secondary" type="submit">Создать копию</button></form></div>{% endif %}
+<form method="post" action="{% if mode == 'game' %}{{ url_for('game_template_update', game_id=game.id, game_template_id=template.id) }}{% else %}{{ url_for('template_update', template_id=template.id) }}{% endif %}" id="template-editor-form">
+  <input type="hidden" id="schema_payload" name="schema_payload">
+  <section class="panel-card editor-panel">
+    <div class="section-heading in-panel"><div><h2>Информация о шаблоне</h2><p>Название и описание будут видны в библиотеке.</p></div></div>
+    <div class="form-grid two-col">
+      <div class="form-control"><label class="form-label" for="template-name">Название шаблона</label><input id="template-name" class="text-input" maxlength="120" value="{{ schema.name }}" required></div>
+      <div class="form-control"><label class="form-label" for="template-description">Описание</label><input id="template-description" class="text-input" maxlength="1000" value="{{ schema.description }}" placeholder="Для какого типа персонажей или игры он подходит"></div>
+    </div>
+  </section>
+
+  <section class="panel-card editor-panel">
+    <div class="section-heading in-panel"><div><h2>Поля карточки</h2><p>Короткие значения, даты, числа или варианты выбора. Назначение «дата рождения» и «возраст» позволяет автоматически пересчитывать возраст при смене даты мира.</p></div><button type="button" class="button button-secondary" id="add-field">＋ Добавить поле</button></div>
+    <div class="field-list-head"><span>Ключ</span><span>Название пункта</span><span>Тип поля</span><span>Варианты выбора</span><span>Автоматизация</span><span>Обязательное</span><span></span></div>
+    <div id="fields-list" class="schema-list"></div>
+    <div id="fields-empty" class="empty-inline" hidden>Пока нет отдельных полей. Можно оставить только текстовые разделы.</div>
+  </section>
+
+  <section class="panel-card editor-panel">
+    <div class="section-heading in-panel"><div><h2>Текстовые разделы</h2><p>Большие описания — например, биография, характер или семья и связи.</p></div><button type="button" class="button button-secondary" id="add-section">＋ Добавить раздел</button></div>
+    <div class="field-list-head section-list-head"><span>Ключ</span><span>Заголовок раздела</span><span></span></div>
+    <div id="sections-list" class="schema-list"></div>
+    <div id="sections-empty" class="empty-inline" hidden>Пока нет текстовых разделов.</div>
+  </section>
+  <div class="sticky-form-footer"><span class="muted-small">{% if mode == 'game' %}Структура будет обновлена только в текущей игре.{% else %}Изменения не затронут структуры, уже подключённые к существующим играм.{% endif %}</span><div class="button-row"><a class="button button-secondary" href="{% if mode == 'game' %}{{ url_for('game_detail', game_id=game.id) }}{% else %}{{ url_for('templates_list') }}{% endif %}">Отмена</a><button type="submit" class="button button-primary">Сохранить шаблон</button></div></div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const initialSchema = {{ schema|tojson }};
+const typeOptions = [
+  ['text','Короткий текст'],['textarea','Многострочный текст'],['number','Число'],['date','Дата'],['select','Один вариант'],['multiselect','Несколько вариантов'],['checkbox','Да / нет']
+];
+let newFieldCounter = 1;
+let newSectionCounter = 1;
+const fieldsList = document.getElementById('fields-list');
+const sectionsList = document.getElementById('sections-list');
+
+function makeInput(className, value, placeholder='') {
+  const input = document.createElement('input'); input.className = className; input.value = value || ''; input.placeholder = placeholder; return input;
+}
+function updateEmptyStates() {
+  document.getElementById('fields-empty').hidden = fieldsList.children.length > 0;
+  document.getElementById('sections-empty').hidden = sectionsList.children.length > 0;
+}
+function generateKey(prefix, list, selector) {
+  let candidate;
+  if (prefix === 'field') { do { candidate = `field_${newFieldCounter++}`; } while ([...list.querySelectorAll(selector)].some(input => input.value.trim() === candidate)); }
+  else { do { candidate = `section_${newSectionCounter++}`; } while ([...list.querySelectorAll(selector)].some(input => input.value.trim() === candidate)); }
+  return candidate;
+}
+function addFieldRow(field = {}) {
+  const row = document.createElement('div'); row.className = 'field-editor-row';
+  const key = makeInput('text-input field-key', field.key || generateKey('field', fieldsList, '.field-key'), 'e.g. full_name'); key.maxLength = 64; key.required = true;
+  const label = makeInput('text-input field-label', field.label || '', 'Название пункта'); label.required = true;
+  const type = document.createElement('select'); type.className = 'select-input field-type';
+  typeOptions.forEach(([value, text]) => { const option = document.createElement('option'); option.value = value; option.textContent = text; type.appendChild(option); });
+  type.value = field.type || 'text';
+  const options = makeInput('text-input field-options', Array.isArray(field.options) ? field.options.join(', ') : '', 'через запятую');
+  const role = document.createElement('select'); role.className = 'select-input field-role';
+  [['','— Нет —'],['birth_date','Дата рождения'],['age','Возраст']].forEach(([value,text]) => { const option = document.createElement('option'); option.value = value; option.textContent = text; role.appendChild(option); });
+  role.value = field.role || '';
+  const roleCell = document.createElement('div'); roleCell.className = 'role-cell'; roleCell.appendChild(role);
+  const optionsCell = document.createElement('div'); optionsCell.className = 'options-cell'; optionsCell.appendChild(options);
+  const requiredCell = document.createElement('label'); requiredCell.className = 'checkbox-control';
+  const required = document.createElement('input'); required.type = 'checkbox'; required.className = 'field-required'; required.checked = Boolean(field.required);
+  requiredCell.append(required, document.createTextNode(' Да'));
+  const removeCell = document.createElement('div'); removeCell.className = 'remove-cell';
+  const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'icon-button danger'; remove.title = 'Удалить поле'; remove.textContent = '×'; remove.addEventListener('click', () => { row.remove(); updateEmptyStates(); }); removeCell.appendChild(remove);
+  row.append(key, label, type, optionsCell, roleCell, requiredCell, removeCell);
+  function syncOptions() { options.disabled = !['select','multiselect'].includes(type.value); options.placeholder = options.disabled ? '—' : 'варианты через запятую'; }
+  type.addEventListener('change', syncOptions); syncOptions();
+  fieldsList.appendChild(row); updateEmptyStates();
+}
+function addSectionRow(section = {}) {
+  const row = document.createElement('div'); row.className = 'section-editor-row';
+  const key = makeInput('text-input section-key', section.key || generateKey('section', sectionsList, '.section-key'), 'e.g. biography'); key.maxLength = 64; key.required = true;
+  const title = makeInput('text-input section-title', section.title || '', 'Заголовок раздела'); title.required = true;
+  const removeCell = document.createElement('div'); removeCell.className = 'remove-cell';
+  const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'icon-button danger'; remove.title = 'Удалить раздел'; remove.textContent = '×'; remove.addEventListener('click', () => { row.remove(); updateEmptyStates(); }); removeCell.appendChild(remove);
+  row.append(key, title, removeCell); sectionsList.appendChild(row); updateEmptyStates();
+}
+(initialSchema.fields || []).forEach(addFieldRow);
+(initialSchema.sections || []).forEach(addSectionRow);
+if (!initialSchema.fields || !initialSchema.fields.length) updateEmptyStates();
+
+document.getElementById('add-field').addEventListener('click', () => { addFieldRow(); fieldsList.lastElementChild.querySelector('.field-label').focus(); });
+document.getElementById('add-section').addEventListener('click', () => { addSectionRow(); sectionsList.lastElementChild.querySelector('.section-title').focus(); });
+document.getElementById('template-editor-form').addEventListener('submit', event => {
+  const fields = [];
+  for (const row of fieldsList.querySelectorAll('.field-editor-row')) {
+    const key = row.querySelector('.field-key').value.trim();
+    const label = row.querySelector('.field-label').value.trim();
+    const type = row.querySelector('.field-type').value;
+    const required = row.querySelector('.field-required').checked;
+    const role = row.querySelector('.field-role').value;
+    if (!key || !label) { event.preventDefault(); alert('У каждого поля должны быть заполнены ключ и название.'); return; }
+    const item = { key, label, type, required };
+    if (role) item.role = role;
+    if (['select','multiselect'].includes(type)) item.options = row.querySelector('.field-options').value.split(',').map(v => v.trim()).filter(Boolean);
+    fields.push(item);
+  }
+  const sections = [];
+  for (const row of sectionsList.querySelectorAll('.section-editor-row')) {
+    const key = row.querySelector('.section-key').value.trim(); const title = row.querySelector('.section-title').value.trim();
+    if (!key || !title) { event.preventDefault(); alert('У каждого раздела должны быть заполнены ключ и заголовок.'); return; }
+    sections.push({key, title});
+  }
+  document.getElementById('schema_payload').value = JSON.stringify({format:'rpg_manager_template', version:1, name:document.getElementById('template-name').value.trim(), description:document.getElementById('template-description').value.trim(), fields, sections});
+});
+</script>
+{% endblock %}

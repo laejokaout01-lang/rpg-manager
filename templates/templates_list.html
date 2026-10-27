@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Шаблоны карточек — RPG Manager{% endblock %}
+{% block breadcrumb %}Шаблоны карточек{% endblock %}
+{% block content %}
+<div class="page-head-row">
+  <div><div class="eyebrow">БИБЛИОТЕКА</div><h1>Шаблоны карточек</h1><p class="lead">Сохраняй удачные структуры и повторно используй их в новых играх. Изменение шаблона в библиотеке не перезаписывает структуру, уже подключённую к игре.</p></div>
+  <div class="head-actions"><a class="button button-primary" href="{{ url_for('template_new') }}">＋ Новый шаблон</a></div>
+</div>
+<div class="info-strip"><span class="info-icon">i</span><div><strong>Как создать шаблон через ИИ</strong><p>Открой инструкцию, скопируй её вместе со своим описанием и попроси ИИ вернуть JSON. Затем вставь JSON через кнопку «Импортировать JSON».</p><a class="text-link" href="{{ url_for('template_instruction') }}">Открыть инструкцию для ИИ →</a></div></div>
+{% if templates %}
+<div class="template-grid">
+{% for item in templates %}
+  <article class="template-card">
+    <div class="template-card-top"><div class="template-symbol">▤</div>{% if item.is_builtin %}<span class="tag tag-neutral">Базовый</span>{% else %}<span class="tag">Пользовательский</span>{% endif %}</div>
+    <h2>{{ item.name }}</h2>
+    <p class="template-description">{{ item.description or 'Описание не задано.' }}</p>
+    <div class="template-meta"><span>{{ item.game_usage }} игр</span><span>Изменён: {{ item.updated_at[:10] }}</span></div>
+    <div class="template-card-actions"><a class="button button-secondary" href="{{ url_for('template_edit', template_id=item.id) }}">Редактировать</a><a class="button button-quiet" href="{{ url_for('template_export', template_id=item.id) }}" title="Скачать JSON">JSON ↓</a></div>
+    <div class="template-card-secondary-actions">
+      <form method="post" action="{{ url_for('template_duplicate', template_id=item.id) }}"><button class="link-button" type="submit">Создать копию</button></form>
+      {% if not item.is_builtin %}<form method="post" action="{{ url_for('template_delete', template_id=item.id) }}" onsubmit="return confirm('Удалить шаблон из общей библиотеки? Копии, уже добавленные в игры, сохранятся.');"><button class="link-button link-danger" type="submit">Удалить</button></form>{% else %}<span class="muted-small">Сохраняется всегда</span>{% endif %}
+    </div>
+  </article>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty-state"><div class="empty-state-icon">▤</div><h2>Пока нет шаблонов</h2><p>Создай пустой шаблон вручную или импортируй JSON, подготовленный ИИ.</p><a class="button button-primary" href="{{ url_for('template_new') }}">Создать шаблон</a></div>
+{% endif %}
+{% endblock %}

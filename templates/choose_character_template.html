@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Выбор шаблона — RPG Manager{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('games_list') }}">Игры</a> <span>/</span> <a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a> <span>/</span> Новый персонаж{% endblock %}
+{% block content %}
+<div class="section-page-head"><a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}">← К игре</a><div class="eyebrow">НОВАЯ КАРТОЧКА</div><h1>Выбери шаблон</h1><p class="lead">В этой игре подключено несколько шаблонов. Выбери, по какому из них создать карточку.</p></div>
+<div class="template-grid small-grid">{% for item in templates %}<article class="template-card"><div class="template-card-top"><div class="template-symbol">▤</div><span class="tag tag-neutral">Шаблон игры</span></div><h2>{{ item.name }}</h2><p class="template-description">Эта структура сохранена внутри игры и не зависит от дальнейших изменений библиотеки шаблонов.</p><a class="button button-primary button-block" href="{{ url_for('character_new', game_id=game.id, template_id=item.id) }}">Создать по этому шаблону →</a></article>{% endfor %}</div>
+{% endblock %}

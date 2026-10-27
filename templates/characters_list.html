@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Персонажи — RPG Manager{% endblock %}
+{% block breadcrumb %}Персонажи{% endblock %}
+{% block content %}
+<div class="page-head-row"><div><div class="eyebrow">КАРТОТЕКА</div><h1>Персонажи</h1><p class="lead">Все карточки NPC из созданных игр. Новую карточку можно добавить из страницы конкретной игры.</p></div><div class="head-actions"><a class="button button-primary" href="{{ url_for('games_list') }}">Перейти к играм</a></div></div>
+{% if characters %}
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Персонаж</th><th>Игра</th><th>Шаблон</th><th>Изменён</th><th></th></tr></thead><tbody>{% for character in characters %}<tr><td><strong>{{ character.name }}</strong></td><td>{{ character.game_name }}</td><td>{{ character.template_name }}</td><td>{{ character.updated_at[:10] }}</td><td><a class="text-link" href="{{ url_for('character_edit', game_id=character.game_id, character_id=character.id) }}">Редактировать →</a></td></tr>{% endfor %}</tbody></table></div>
+{% else %}
+<div class="empty-state"><div class="empty-state-icon">♙</div><h2>Карточек пока нет</h2><p>Создай игру, подключи к ней шаблон и добавь первого NPC. Карточки сохраняются в SQLite.</p><a class="button button-primary" href="{{ url_for('games_list') }}">Открыть игры</a></div>
+{% endif %}
+{% endblock %}

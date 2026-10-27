@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Инструкция для ИИ — RPG Manager{% endblock %}
+{% block breadcrumb %}Инструкция для ИИ{% endblock %}
+{% block content %}
+<div class="page-head-row">
+  <div><div class="eyebrow">НАСТРОЙКИ КОНСТРУКТОРА</div><h1>Инструкция для ИИ</h1><p class="lead">Это полный текст, который ты копируешь в ИИ вместе с описанием нужной карточки. Редактируй его прямо здесь — изменения хранятся в SQLite и не пропадут после перезапуска.</p></div>
+</div>
+<div class="info-strip"><span class="info-icon">i</span><div><strong>Рекомендуемый порядок работы</strong><p>Скопируй инструкцию → добавь описание сеттинга и назначения шаблона → полученный JSON вставь в раздел «Шаблоны карточек» → проверь его в редакторе и сохрани.</p></div></div>
+<section class="panel-card instruction-panel">
+  <form method="post" action="{{ url_for('template_instruction_save') }}" id="instruction-form">
+    <div class="panel-heading"><div><h2>Текст инструкции</h2><p>Можно менять любые формулировки и правила генерации.</p></div><span class="tag tag-neutral">Сохраняется локально</span></div>
+    <textarea id="instruction-text" name="instruction" class="code-textarea instruction-textarea" rows="34" spellcheck="false" required>{{ instruction }}</textarea>
+    <div class="form-footer instruction-footer"><span class="muted-small">Символов: <strong id="char-count">0</strong></span><div class="button-row"><button class="button button-secondary" type="button" id="copy-instruction">Копировать текст</button><button class="button button-primary" type="submit">Сохранить изменения</button></div></div>
+  </form>
+  <div class="instruction-bottom-actions"><form method="post" action="{{ url_for('template_instruction_reset') }}" onsubmit="return confirm('Восстановить исходную инструкцию? Текущий текст будет заменён.');"><button class="link-button link-danger" type="submit">Восстановить исходный текст</button></form><span class="muted-small">Восстановление не затрагивает сами шаблоны.</span></div>
+  <div id="copy-status" class="copy-status" role="status" aria-live="polite"></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const instructionText = document.getElementById('instruction-text');
+const charCount = document.getElementById('char-count');
+const copyStatus = document.getElementById('copy-status');
+function updateCount(){ charCount.textContent = instructionText.value.length.toLocaleString('ru-RU'); }
+updateCount(); instructionText.addEventListener('input', updateCount);
+document.getElementById('copy-instruction').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(instructionText.value);
+    copyStatus.textContent = 'Инструкция скопирована в буфер обмена.';
+  } catch (error) {
+    instructionText.focus(); instructionText.select();
+    copyStatus.textContent = 'Не удалось скопировать автоматически. Текст выделен — нажми Ctrl+C.';
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}RPG Manager{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-mark">R</span>
+        <span><strong>RPG Manager</strong><small>Локальная игровая мастерская</small></span>
+      </a>
+      <div class="nav-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+      <nav class="main-nav" aria-label="Основная навигация">
+        {% for item in nav_items %}
+        <a class="nav-link {% if active_page == item.key %}active{% endif %}" href="{{ item.href }}">
+          <span class="nav-icon">{{ item.icon }}</span><span>{{ item.label }}</span>
+        </a>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <span><strong>Локальный режим</strong><small>Данные сохраняются на этом ПК</small></span>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="breadcrumb">Рабочее пространство <span>/</span> {% block breadcrumb %}Обзор{% endblock %}</div>
+        <div class="setting-pill"><span class="setting-dot"></span> Локальная база SQLite</div>
+      </header>
+      <div class="page-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack" aria-live="polite">
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </div>
+      <footer class="page-footer">RPG Manager <span>•</span> локальный инструмент для текстовых RPG</footer>
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

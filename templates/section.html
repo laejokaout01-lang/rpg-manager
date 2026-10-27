@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ section.title }} — RPG Manager{% endblock %}
+{% block breadcrumb %}{{ section.title }}{% endblock %}
+{% block content %}
+<div class="section-page-head">
+  <a class="back-link" href="{{ url_for('index') }}">← Обзор</a>
+  <div class="eyebrow">РАЗДЕЛ ПРОЕКТА</div>
+  <h1>{{ section.title }}</h1>
+  <p class="lead">{{ section.description }}</p>
+</div>
+<div class="empty-state">
+  <div class="empty-state-icon">✦</div>
+  <h2>Этот раздел пока не реализован</h2>
+  <p>Сейчас доступны библиотека шаблонов, редактирование инструкции для ИИ, игры и карточки NPC. Остальные разделы добавим отдельными этапами.</p>
+  <a class="button button-secondary" href="{{ url_for('index') }}">Вернуться к обзору</a>
+</div>
+{% endblock %}

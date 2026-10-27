@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Новый шаблон — RPG Manager{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('templates_list') }}">Шаблоны карточек</a> <span>/</span> Новый шаблон{% endblock %}
+{% block content %}
+<div class="section-page-head"><a class="back-link" href="{{ url_for('templates_list') }}">← К библиотеке шаблонов</a><div class="eyebrow">СОЗДАНИЕ ШАБЛОНА</div><h1>Новый шаблон карточки</h1><p class="lead">Можно начать с пустого шаблона и добавить пункты вручную либо загрузить JSON, подготовленный ИИ.</p></div>
+<div class="two-column-layout">
+  <section class="panel-card">
+    <div class="panel-heading"><div><h2>Импортировать JSON</h2><p>Вставь готовую структуру. После проверки её можно будет редактировать в обычной форме.</p></div><span class="panel-icon">{ }</span></div>
+    {% if error %}<div class="inline-error">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ url_for('template_import') }}" id="import-form">
+      <label class="form-label" for="schema_json">JSON шаблона</label>
+      <textarea class="code-textarea" id="schema_json" name="schema_json" rows="22" spellcheck="false" placeholder="Вставь сюда JSON, который подготовил ИИ…">{{ json_text }}</textarea>
+      <div class="form-footer"><span class="muted-small">Допускаются и JSON-ограждения ```json … ``` — они будут удалены автоматически.</span><button class="button button-primary" type="submit">Проверить и создать</button></div>
+    </form>
+    <details class="details-block"><summary>Показать минимальный пример JSON</summary><pre class="json-example" id="sample-json">{{ sample_json }}</pre><button class="button button-secondary" type="button" id="use-sample">Вставить пример в поле</button></details>
+  </section>
+  <aside class="panel-card side-panel">
+    <div class="panel-heading"><div><h2>Создать вручную</h2><p>Начни с чистой формы и добавь поля в редакторе.</p></div><span class="panel-icon">＋</span></div>
+    <p class="body-copy">Пустой шаблон будет сохранён в библиотеке. Ты сможешь задать ему название, описание, поля и произвольные текстовые разделы.</p>
+    <form method="post" action="{{ url_for('template_blank') }}"><button type="submit" class="button button-secondary button-block">Создать пустой шаблон</button></form>
+    <div class="mini-divider"></div>
+    <div class="panel-heading"><div><h2>Нужна инструкция?</h2><p>Полный редактируемый промпт для ИИ находится отдельно.</p></div></div>
+    <a class="button button-secondary button-block" href="{{ url_for('template_instruction') }}">Открыть инструкцию для ИИ</a>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const sampleButton = document.getElementById('use-sample');
+if (sampleButton) sampleButton.addEventListener('click', () => {
+  document.getElementById('schema_json').value = document.getElementById('sample-json').textContent;
+  document.getElementById('schema_json').focus();
+});
+</script>
+{% endblock %}

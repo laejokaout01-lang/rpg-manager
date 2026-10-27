@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{% if card %}{{ card.name }}{% else %}Новый персонаж{% endif %} — RPG Manager{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('games_list') }}">Игры</a> <span>/</span> <a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a> <span>/</span> {% if card %}{{ card.name }}{% else %}Новый персонаж{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head-row"><div><a class="back-link" href="{{ url_for('game_detail', game_id=game.id) }}">← К игре «{{ game.name }}»</a><div class="eyebrow">КАРТОЧКА NPC</div><h1>{% if card %}{{ card.name }}{% else %}Новая карточка{% endif %}</h1><p class="lead">Шаблон: <strong>{{ game_template.name }}</strong>. Эти поля принадлежат текущей игровой копии шаблона.</p></div><div class="head-actions"><span class="tag tag-neutral">{{ schema.fields|length }} полей · {{ schema.sections|length }} разделов</span></div></div>
+{% if error %}<div class="inline-error">{{ error }}</div>{% endif %}
+<form method="post" action="{% if card %}{{ url_for('character_update', game_id=game.id, character_id=card.id) }}{% else %}{{ url_for('character_create', game_id=game.id) }}{% endif %}" class="character-form">
+  <input type="hidden" name="game_template_id" value="{{ game_template.id }}">
+  {% if schema.fields %}
+  <section class="panel-card editor-panel"><div class="section-heading in-panel"><div><h2>Основные поля</h2><p>Заполняй только известные сведения; необязательные поля можно оставить пустыми.</p></div></div>
+    <div class="form-grid two-col">
+    {% for field in schema.fields %}
+      {% set value = data.fields.get(field.key, '') %}
+      <div class="form-control {% if field.type == 'textarea' %}span-two{% endif %}">
+        <label class="form-label" for="field_{{ field.key }}">{{ field.label }}{% if field.required %}<span class="required-mark">*</span>{% endif %}</label>
+        {% if field.type == 'textarea' %}
+          <textarea class="text-area" id="field_{{ field.key }}" name="field_{{ field.key }}" rows="4" {% if field.required %}required{% endif %}>{{ value if value is string else '' }}</textarea>
+        {% elif field.type == 'select' %}
+          <select class="select-input" id="field_{{ field.key }}" name="field_{{ field.key }}" {% if field.required %}required{% endif %}><option value="">— Не выбрано —</option>{% for option in field.options %}<option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+        {% elif field.type == 'multiselect' %}
+          <select class="select-input multi-select" id="field_{{ field.key }}" name="field_{{ field.key }}" multiple size="{{ [field.options|length, 5]|min }}">{% for option in field.options %}<option value="{{ option }}" {% if value is sequence and value is not string and option in value %}selected{% endif %}>{{ option }}</option>{% endfor %}</select><span class="help-text">Удерживай Ctrl, чтобы выбрать несколько значений.</span>
+        {% elif field.type == 'checkbox' %}
+          <label class="checkbox-large"><input type="checkbox" id="field_{{ field.key }}" name="field_{{ field.key }}" {% if value %}checked{% endif %}><span>Да</span></label>
+        {% else %}
+          <input class="text-input" id="field_{{ field.key }}" name="field_{{ field.key }}" type="{% if field.type in ['number','date'] %}{{ field.type }}{% else %}text{% endif %}" value="{{ value if value is string or value is number else '' }}" {% if field.required %}required{% endif %}>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% if schema.sections %}
+  <section class="panel-card editor-panel"><div class="section-heading in-panel"><div><h2>Текстовые разделы</h2><p>Свободные описания, биография, связи и другие сведения.</p></div></div>
+    <div class="section-form-list">
+    {% for section in schema.sections %}
+      <div class="form-control"><label class="form-label" for="section_{{ section.key }}">{{ section.title }}</label><textarea class="text-area large-text-area" id="section_{{ section.key }}" name="section_{{ section.key }}" rows="5" placeholder="{{ section.title }}…">{{ data.sections.get(section.key, '') }}</textarea></div>
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% if not schema.fields and not schema.sections %}<div class="empty-state"><h2>Этот шаблон пуст</h2><p>Открой библиотеку, добавь поля или разделы в шаблон, а затем подключи его к игре заново.</p><a class="button button-secondary" href="{{ url_for('templates_list') }}">К библиотеке шаблонов</a></div>{% endif %}
+  <div class="sticky-form-footer"><span class="muted-small">{% if card %}Последнее сохранение: {{ card.updated_at[:16].replace('T', ' ') }}{% else %}Карточка будет сохранена в выбранной игре.{% endif %}</span><div class="button-row"><a class="button button-secondary" href="{{ url_for('game_detail', game_id=game.id) }}">Отмена</a>{% if card %}<button type="button" class="button button-danger" id="delete-card-open">Удалить карточку</button>{% endif %}<button type="submit" class="button button-primary" {% if not schema.fields and not schema.sections %}disabled{% endif %}>Сохранить карточку</button></div></div>
+</form>
+{% if card %}<form id="delete-card-form" method="post" action="{{ url_for('character_delete', game_id=game.id, character_id=card.id) }}" class="hidden-form"><input type="hidden" name="confirm" value="yes"></form>{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if card %}<script>
+document.getElementById('delete-card-open').addEventListener('click', () => {
+  if (confirm('Удалить эту карточку без возможности восстановления?')) document.getElementById('delete-card-form').submit();
+});
+</script>{% endif %}
+{% endblock %}
